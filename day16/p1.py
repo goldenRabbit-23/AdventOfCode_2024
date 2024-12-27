@@ -1,42 +1,41 @@
 import sys
-from collections import defaultdict, deque
+from collections import defaultdict
+from heapq import heappush, heappop
+
+# 0: East, 1: South, 2: West, 3: North
+DIRS = [(0, 1), (1, 0), (0, -1), (-1, 0)]
 
 
 def main() -> None:
   maze = open(sys.argv[1]).read().splitlines()
   sr, sc = len(maze) - 2, 1
-  dist = defaultdict(int)
-  min_score = float("inf")
 
-  q = deque([(sr, sc, 0, 1, 0)])
-  dist[(sr, sc)] = 0
+  pq = [(0, sr, sc, 0)]
+  seen = defaultdict(lambda: float("inf"))
+  seen[(sr, sc, 0)] = 0
+  min_cost = float("inf")
 
-  while q:
-    cr, cc, cdr, cdc, cs = q.popleft()
+  while pq:
+    cost, cr, cc, cdir = heappop(pq)
 
-    # arrived at the end
     if maze[cr][cc] == "E":
-      min_score = cs
+      min_cost = min(min_cost, cost)
+      continue
 
-    # move forward
-    if maze[cr + cdr][cc + cdc] in ".E":
-      if (cr + cdr, cc + cdc) not in dist or cs + 1 < dist[(cr + cdr, cc + cdc)]:
-        q.append((cr + cdr, cc + cdc, cdr, cdc, cs + 1))
-        dist[(cr + cdr, cc + cdc)] = cs + 1
+    # -1: turn left, 0: go straight, 1: turn right
+    for turn in [-1, 0, 1]:
+      ndir = (cdir + turn) % 4
+      new_cost = cost + (1000 if turn != 0 else 0)
+      nr, nc = cr + DIRS[ndir][0], cc + DIRS[ndir][1]
 
-    # move counter-clockwise
-    if maze[cr - cdc][cc + cdr] in ".E":
-      if (cr - cdc, cc + cdr) not in dist or cs + 1001 < dist[(cr - cdc, cc + cdr)]:
-        q.append((cr - cdc, cc + cdr, -cdc, cdr, cs + 1001))
-        dist[(cr - cdc, cc + cdr)] = cs + 1001
+      if maze[nr][nc] != "#":
+        new_cost += 1
 
-    # move clockwise
-    if maze[cr + cdc][cc - cdr] in ".E":
-      if (cr + cdc, cc - cdr) not in dist or cs + 1001 < dist[(cr + cdc, cc - cdr)]:
-        q.append((cr + cdc, cc - cdr, cdc, -cdr, cs + 1001))
-        dist[(cr + cdc, cc - cdr)] = cs + 1001
+        if new_cost < seen[(nr, nc, ndir)]:
+          seen[(nr, nc, ndir)] = new_cost
+          heappush(pq, (new_cost, nr, nc, ndir))
 
-  print(min_score)
+  print(min_cost)
 
 
 if __name__ == "__main__":
