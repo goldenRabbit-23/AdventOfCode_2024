@@ -6,16 +6,13 @@ from heapq import heappush, heappop
 DIRS = [(0, 1), (1, 0), (0, -1), (-1, 0)]
 
 
-def main() -> None:
-  maze = open(sys.argv[1]).read().splitlines()
-  sr, sc = len(maze) - 2, 1
-  er, ec = 1, len(maze[0]) - 2
-
-  # Part 1: Forward search from start
-  pq = [(0, sr, sc, 0)]
-  costs_from_start = defaultdict(lambda: float("inf"))
-  costs_from_start[(sr, sc, 0)] = 0
+def dijkstra(maze, sr, sc, sdir, er, ec, costs) -> int:
+  pq = []
   min_cost = float("inf")
+
+  for d in sdir:
+    pq.append((0, sr, sc, d))
+    costs[(sr, sc, d)] = 0
 
   while pq:
     cost, cr, cc, cdir = heappop(pq)
@@ -29,8 +26,8 @@ def main() -> None:
       ndir = (cdir + turn) % 4
       new_cost = cost + (1000 if turn != 0 else 0)
 
-      if new_cost < costs_from_start[(cr, cc, ndir)]:
-        costs_from_start[(cr, cc, ndir)] = new_cost
+      if new_cost < costs[(cr, cc, ndir)]:
+        costs[(cr, cc, ndir)] = new_cost
         heappush(pq, (new_cost, cr, cc, ndir))
 
       nr, nc = cr + DIRS[ndir][0], cc + DIRS[ndir][1]
@@ -38,39 +35,27 @@ def main() -> None:
       if maze[nr][nc] != "#":
         new_cost += 1
 
-        if new_cost < costs_from_start[(nr, nc, ndir)]:
-          costs_from_start[(nr, nc, ndir)] = new_cost
+        if new_cost < costs[(nr, nc, ndir)]:
+          costs[(nr, nc, ndir)] = new_cost
           heappush(pq, (new_cost, nr, nc, ndir))
+
+  return min_cost
+
+
+def main() -> None:
+  maze = open(sys.argv[1]).read().splitlines()
+  sr, sc = len(maze) - 2, 1
+  er, ec = 1, len(maze[0]) - 2
+  costs_from_start = defaultdict(lambda: float("inf"))
+  costs_from_end = defaultdict(lambda: float("inf"))
+
+  # Part 1: Forward search from start
+  min_cost = dijkstra(maze, sr, sc, (0,), er, ec, costs_from_start)
 
   # Part 2: Backward search from end
-  pq = [(0, er, ec, 1), (0, er, ec, 2)]
-  costs_from_end = defaultdict(lambda: float("inf"))
-  costs_from_end[(er, ec, 1)] = 0
-  costs_from_end[(er, ec, 2)] = 0
+  dijkstra(maze, er, ec, (1, 2), sr, sc, costs_from_end)
 
-  while pq:
-    cost, cr, cc, cdir = heappop(pq)
-
-    if (cr, cc) == (sr, sc):
-      continue
-
-    for turn in [-1, 0, 1]:
-      ndir = (cdir + turn) % 4
-      new_cost = cost + (1000 if turn != 0 else 0)
-
-      if new_cost < costs_from_end[(cr, cc, ndir)]:
-        costs_from_end[(cr, cc, ndir)] = new_cost
-        heappush(pq, (new_cost, cr, cc, ndir))
-
-      nr, nc = cr + DIRS[ndir][0], cc + DIRS[ndir][1]
-
-      if maze[nr][nc] != "#":
-        new_cost += 1
-
-        if new_cost < costs_from_end[(nr, nc, ndir)]:
-          costs_from_end[(nr, nc, ndir)] = new_cost
-          heappush(pq, (new_cost, nr, nc, ndir))
-
+  # Part 3: Count tiles which are on an optimal path
   optimal_tiles = set()
 
   for (r, c, d), cost_from_start in costs_from_start.items():
