@@ -1,4 +1,5 @@
 import sys
+from collections import deque
 
 
 def hash_delta(a, b, c, d) -> int:
@@ -10,8 +11,8 @@ def main() -> None:
   bananas = [0 for _ in range(19 ** 4)]
 
   for i, secret in enumerate(secrets):
-    found = [False for _ in range(19 ** 4)]
-    changes = []
+    seen = set()
+    changes = deque(maxlen=4)
 
     for it in range(2000):
       secret = ((secret << 6) ^ secret) & 0xffffff
@@ -21,11 +22,11 @@ def main() -> None:
       changes.append(secret % 10 - secrets[i] % 10)
 
       if it >= 3:
-        hashed_delta = hash_delta(*changes[-4:])
+        hashed_delta = hash_delta(*changes)
 
-        if not found[hashed_delta]:
+        if hashed_delta not in seen:
           bananas[hashed_delta] += secret % 10
-          found[hashed_delta] = True
+          seen.add(hashed_delta)
 
       secrets[i] = secret
 
